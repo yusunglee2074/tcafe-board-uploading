@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const CronJob = require('cron').CronJob;
 
   (async () => {
-    const browser = await puppeteer.launch({ headless: false});
+    const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto('http://tcafe2a.com/');
     await page.waitForSelector('input[name="mb_id"]');
