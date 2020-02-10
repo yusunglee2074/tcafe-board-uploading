@@ -26,7 +26,7 @@ const boardWriteUrl = {
 
 const main = async () => {
 
-  const makePageAndMakeCronJobWithLogin = async (id) => {
+  const makePageAndMakeCronJobWithLogin = async (id, idx) => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto('http://tcafe2a.com/', {timeout: 0});
@@ -35,7 +35,14 @@ const main = async () => {
     await page.type('input[name="mb_password"]', ids[id]);
     await page.click('input[class="login-button"]');
 
-    return new CronJob('0 */6 * * * *', async () => {
+    const cron = [
+      '0 3,12,23,37,45,59 * * * *',
+      '0 9,14,32,42,50,53 * * * *',
+      '0 0,11,18,36,41,51 * * * *',
+      '0 10,17,24,33,47,54 * * * *',
+      '0 4,16,19,34,49,55 * * * *',
+    ];
+    return new CronJob(cron[idx], async () => {
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
       await page.waitFor(randomInt(100, 3000));
       const boardNames = [...shuffle(Object.keys(boardUrl))];
@@ -115,8 +122,15 @@ const main = async () => {
   // Add a wait for some selector on the home page to load to ensure the next step works correctly
 
 
+  let cronArryIdx = randomInt(0,4);
   for (const id of Object.keys(ids)) {
-    const job = await makePageAndMakeCronJobWithLogin(id);
+
+    const idx = cronArryIdx;
+    const job = await makePageAndMakeCronJobWithLogin(id, idx);
+    cronArryIdx++;
+    if (cronArryIdx === 4) {
+      cronArryIdx = 0;
+    }
     job.start();
     console.log(`${id} 로그인 완료`);
   }
