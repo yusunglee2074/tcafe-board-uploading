@@ -27,7 +27,7 @@ const boardWriteUrl = {
 const main = async () => {
 
   const makePageAndMakeCronJobWithLogin = async (id, idx) => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: false});
     const page = await browser.newPage();
     await page.goto('http://tcafe2a.com/', {timeout: 0});
     await page.waitForSelector('input[name="mb_id"]');
@@ -36,27 +36,30 @@ const main = async () => {
     await page.click('input[class="login-button"]');
 
     const cron = [
-      '0 3,12,23,37,45,59 * * * *',
-      '0 9,14,32,42,50,53 * * * *',
-      '0 0,11,18,36,41,51 * * * *',
-      '0 10,17,24,33,47,54 * * * *',
-      '0 4,16,19,34,49,55 * * * *',
+      '0 3,8,12,23,37,41,45,51,55,59 * * * *',
+      '0 1,7,14,29,32,38,42,50,53,54 * * * *',
+      '0 0,6,11,18,28,36,41,48,52,57 * * * *',
+      '0 2,5,11,14,34,39,42,47,54,11 * * * *',
     ];
     return new CronJob(cron[idx], async () => {
+    // return new CronJob('*/30 * * * * *', async () => {
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      await page.waitFor(randomInt(100, 3000));
-      const boardNames = [...shuffle(Object.keys(boardUrl))];
-      console.log('작성 예정 게시판', boardNames);
+      console.log('17퍼센트 확류로 그냥 안씀');
+      if (randomInt(0, 100) < 84) {
+        await page.waitFor(randomInt(100, 3000));
+        const boardNames = [...shuffle(Object.keys(boardUrl))];
+        console.log('작성 예정 게시판', boardNames);
 
-      for (const boardName of boardNames) {
-        console.log(boardName + ' 게시판에 글 쓰러간다');
-        const {title, content} = await getTitleAndContent(page, boardName);
-        if (content.indexOf('iframe') === -1) {
-          await writeBoard({
-            page,
-            boardName,
-            title, content,
-          });
+        for (const boardName of boardNames) {
+          console.log(boardName + ' 게시판에 글 쓰러간다');
+          const {title, content} = await getTitleAndContent(page, boardName);
+          if (content.indexOf('iframe') === -1) {
+            await writeBoard({
+              page,
+              boardName,
+              title, content,
+            });
+          }
         }
       }
     }, null, true, 'America/Los_Angeles');
@@ -105,24 +108,70 @@ const main = async () => {
 
   const writeBoard = async ({page, boardName, title, content}) => {
     await page.goto(boardWriteUrl[boardName]);
-    await page.type('input[id="wr_subject"]', title);
-    // await page.click('div[class="cheditor-tab-code-off"]');
-    const element = await page.$('div[class="cheditor-tab-code-off"]');
-    await element.click();
-    await page.type('textarea[class="cheditor-editarea-text-content"]', content);
-    if (boardName !== 'talkCafe' && boardName !== 'mystery') {
-      await page.evaluate(() => {
-        document.querySelector('select option:nth-child(2)').selected = true;
-      })
+    const alreadyExistTitle = await page.$eval('input[id="wr_subject"]', e => e.value);
+    if (alreadyExistTitle) {
+      await page.focus('input[id="wr_subject"]');
+      await page.$eval('input[id="wr_subject"]', el => el.setSelectionRange(0, el.value.length));
+      await page.keyboard.press('Backspace');
+      await page.type('input[id="wr_subject"]', ' ');
+
+      const element = await page.$('div[class="cheditor-tab-code-off"]');
+      if (element == null) {
+        await page.goto('http://tcafe2a.com/', {timeout: 0});
+        await page.keyboard.press('Enter');
+      } else {
+        await element.click();
+
+        await page.focus('textarea[class="cheditor-editarea-text-content"]');
+        await page.$eval('textarea[class="cheditor-editarea-text-content"]', el => el.setSelectionRange(0, el.value.length));
+        await page.keyboard.press('Backspace');
+
+        await page.type('textarea[class="cheditor-editarea-text-content"]', '1');
+        if (boardName !== 'talkCafe' && boardName !== 'mystery') {
+          await page.evaluate(() => {
+            document.querySelector('select option:nth-child(2)').selected = true;
+          })
+        }
+
+        await page.waitFor(1000);
+        await page.click('input[id="btn_submit"]');
+
+        await page.waitFor(2000);
+        await page.click('td#mw_basic table tbody tr td a:nth-child(2)');
+
+        await page.on("dialog", (dialog) => {
+          console.log("Dialog is up...");
+          delay(1000);
+          console.log("Accepted...");
+          dialog.accept();
+          delay(1000);
+        });
+
+        await page.waitFor(10000);
+
+        await page.keyboard.press('Enter');
+      }
+
+    } else {
+      await page.type('input[id="wr_subject"]', title);
+      // await page.click('div[class="cheditor-tab-code-off"]');
+      const element = await page.$('div[class="cheditor-tab-code-off"]');
+      await element.click();
+      await page.type('textarea[class="cheditor-editarea-text-content"]', content);
+      if (boardName !== 'talkCafe' && boardName !== 'mystery') {
+        await page.evaluate(() => {
+          document.querySelector('select option:nth-child(2)').selected = true;
+        })
+      }
+      await page.click('input[id="btn_submit"]');
     }
-    await page.click('input[id="btn_submit"]');
   };
 
   console.log("시작시각 ", new Date);
   // Add a wait for some selector on the home page to load to ensure the next step works correctly
 
 
-  let cronArryIdx = randomInt(0,4);
+  let cronArryIdx = randomInt(0, 4);
   for (const id of Object.keys(ids)) {
 
     const idx = cronArryIdx;
