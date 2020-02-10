@@ -11,7 +11,7 @@ const CronJob = require('cron').CronJob;
     await page.click('input[class="login-button"]');
     // Add a wait for some selector on the home page to load to ensure the next step works correctly
 
-    const job = new CronJob('2 8 */1 * * *', async () => {
+    const job = new CronJob('13 32 */2 * * *', async () => {
       console.log('시작');
       for (let i = 0; i < 10; i++) {
         await page.waitFor(2000);
