@@ -48,7 +48,7 @@ const main = async () => {
     ];
     return new CronJob(cron[idx], async () => {
       // return new CronJob('*/30 * * * * *', async () => {
-      const point = await page.$eval('span.lg_pnt_n pnt_money', e => e.innerText);
+      const point = await page.$eval('span.lg_pnt_n.pnt_money', e => e.innerText);
       console.log(`현재 포인트: ${point}`);
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
       if (randomInt(0, 100) < 65) {
