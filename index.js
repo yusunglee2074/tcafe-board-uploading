@@ -51,14 +51,18 @@ const main = async () => {
       const point = await page.$eval('span.lg_pnt_n pnt_money', e => e.innerText);
       console.log(`현재 포인트: ${point}`);
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      console.log('30퍼센트 확률로 그냥 안씀');
-      if (randomInt(0, 100) < 70) {
+      if (randomInt(0, 100) < 65) {
         await page.waitFor(randomInt(100, 3000));
         const boardNames = [...shuffle(Object.keys(boardUrl))];
         console.log('작성 예정 게시판', boardNames);
 
         for (const boardName of boardNames) {
           console.log(boardName + ' 게시판에 글 쓰러간다');
+          if (boardName === 'gongpo' || boardName === 'heal') {
+            if (randomInt(0, 100) < 65) {
+              continue;
+            }
+          }
           const {title, content} = await getTitleAndContent(page, boardName);
           if (content.indexOf('iframe') === -1) {
             await writeBoard({
@@ -68,6 +72,8 @@ const main = async () => {
             });
           }
         }
+      } else {
+        console.log('35퍼센트 확률로 그냥 안씀');
       }
     }, null, true, 'Asia/Tokyo');
   };
@@ -150,11 +156,7 @@ const main = async () => {
         await page.click('td#mw_basic table tbody tr td a:nth-child(2)');
 
         await page.on("dialog", (dialog) => {
-          console.log("Dialog is up...");
-          delay(1000);
-          console.log("Accepted...");
           dialog.accept();
-          delay(1000);
         });
 
         await page.waitFor(10000);
