@@ -8,44 +8,53 @@ const ids = {
   lysspdlqj: 'sjdmlrl4',
 };
 const boardUrl = {
-  cook: 'http://tcafe2a.com/bbs/board.php?bo_table=c_food&page=',
+  // cook: 'http://tcafe2a.com/bbs/board.php?bo_table=c_food&page=',
   gongpo: 'http://tcafe2a.com/bbs/board.php?bo_table=c_gongpo&page=',
   humor: 'http://tcafe2a.com/bbs/board.php?bo_table=c_humor&page=',
   jjal: 'http://tcafe2a.com/bbs/board.php?bo_table=c_jjalbang&page=',
   enter: 'http://tcafe2a.com/bbs/board.php?bo_table=c_enter&page=',
   heal: 'http://tcafe2a.com/bbs/board.php?bo_table=c_heal&page=',
+  // comic: 'http://tcafe2a.com/bbs/board.php?bo_table=c_comic&page=',
 };
 const boardWriteUrl = {
-  cook: 'http://tcafe2a.com/bbs/write.php?bo_table=c_food',
+  // cook: 'http://tcafe2a.com/bbs/write.php?bo_table=c_food',
   gongpo: 'http://tcafe2a.com/bbs/write.php?bo_table=c_gongpo',
   humor: 'http://tcafe2a.com/bbs/write.php?bo_table=c_humor',
   jjal: 'http://tcafe2a.com/bbs/write.php?bo_table=c_jjalbang',
   enter: 'http://tcafe2a.com/bbs/write.php?bo_table=c_enter',
   heal: 'http://tcafe2a.com/bbs/write.php?bo_table=c_heal',
+  // comic: 'http://tcafe2a.com/bbs/write.php?bo_table=c_comic',
 };
 
 const main = async () => {
 
   const makePageAndMakeCronJobWithLogin = async (id, idx) => {
-    const browser = await puppeteer.launch({ headless: false});
+    const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('http://tcafe2a.com/', {timeout: 0});
+    await page.goto('http://tcafe2a.com/', {timeout: 100000});
     await page.waitForSelector('input[name="mb_id"]');
     await page.type('input[name="mb_id"]', id);
     await page.type('input[name="mb_password"]', ids[id]);
     await page.click('input[class="login-button"]');
+        await page.on("dialog", (dialog) => {
+          console.log("Dialog is up...");
+          delay(1000);
+          console.log("Accepted...");
+          dialog.accept();
+          delay(1000);
+        });
 
     const cron = [
-      '0 3,8,12,23,37,41,45,51,55,59 * * * *',
-      '0 1,7,14,29,32,38,42,50,53,54 * * * *',
-      '0 0,6,11,18,28,36,41,48,52,57 * * * *',
-      '0 2,5,11,14,34,39,42,47,54,11 * * * *',
+      '0 3,8,12,23,37,41,45,51,55,59 5-23,0,1 * * *',
+      '0 1,7,14,29,32,38,42,50,53,54 5-23,0,1 * * *',
+      '0 0,6,11,18,28,36,41,48,52,57 5-23,0,1 * * *',
+      '0 2,5,11,14,34,39,42,47,54,11 5-23,0,1 * * *',
     ];
     return new CronJob(cron[idx], async () => {
     // return new CronJob('*/30 * * * * *', async () => {
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      console.log('17퍼센트 확류로 그냥 안씀');
-      if (randomInt(0, 100) < 84) {
+      console.log('5퍼센트 확류로 그냥 안씀');
+      if (randomInt(0, 100) < 95) {
         await page.waitFor(randomInt(100, 3000));
         const boardNames = [...shuffle(Object.keys(boardUrl))];
         console.log('작성 예정 게시판', boardNames);
@@ -62,7 +71,7 @@ const main = async () => {
           }
         }
       }
-    }, null, true, 'America/Los_Angeles');
+    }, null, true, 'Asia/Tokyo');
   };
 
   const randomInt = (low, high) => {
@@ -89,13 +98,13 @@ const main = async () => {
 
   const getTitleAndContent = async (page, boardName) => {
     const url = boardUrl[boardName] + randomInt(30, 100);
-    await page.goto(url);
+    await page.goto(url, {timeout: 100000});
     let boardId;
     let title;
     const randomNum = randomInt(5, 40);
     boardId = await page.$eval(`table#tbl_board tbody tr:nth-child(${randomNum}) td.l_num`, e => e.innerText);
     title = await page.$eval(`table#tbl_board tbody tr:nth-child(${randomNum}) td.l_subj a span`, e => e.innerText);
-    await page.goto(url + '&wr_id=' + boardId);
+    await page.goto(url + '&wr_id=' + boardId, {timeout: 100000});
 
     if (title[0] === '[') title = title.slice(5);
     const content = await page.$eval(`div#view_${boardId}`, e => {
@@ -107,9 +116,10 @@ const main = async () => {
   };
 
   const writeBoard = async ({page, boardName, title, content}) => {
-    await page.goto(boardWriteUrl[boardName]);
+    await page.goto(boardWriteUrl[boardName], {timeout: 100000});
     const alreadyExistTitle = await page.$eval('input[id="wr_subject"]', e => e.value);
     if (alreadyExistTitle) {
+	    console.log('글쓰기 에러 발생');
       await page.focus('input[id="wr_subject"]');
       await page.$eval('input[id="wr_subject"]', el => el.setSelectionRange(0, el.value.length));
       await page.keyboard.press('Backspace');
@@ -117,7 +127,7 @@ const main = async () => {
 
       const element = await page.$('div[class="cheditor-tab-code-off"]');
       if (element == null) {
-        await page.goto('http://tcafe2a.com/', {timeout: 0});
+        await page.goto('http://tcafe2a.com/', {timeout: 100000});
         await page.keyboard.press('Enter');
       } else {
         await element.click();
@@ -155,7 +165,7 @@ const main = async () => {
     } else {
       await page.type('input[id="wr_subject"]', title);
       // await page.click('div[class="cheditor-tab-code-off"]');
-      const element = await page.$('div[class="cheditor-tab-code-off"]');
+      const element = await page.$('div div.cheditor-viewmode div:nth-child(2)');
       await element.click();
       await page.type('textarea[class="cheditor-editarea-text-content"]', content);
       if (boardName !== 'talkCafe' && boardName !== 'mystery') {
