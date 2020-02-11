@@ -36,13 +36,9 @@ const main = async () => {
     await page.type('input[name="mb_id"]', id);
     await page.type('input[name="mb_password"]', ids[id]);
     await page.click('input[class="login-button"]');
-        await page.on("dialog", (dialog) => {
-          console.log("Dialog is up...");
-          delay(1000);
-          console.log("Accepted...");
-          dialog.accept();
-          delay(1000);
-        });
+    await page.on("dialog", (dialog) => {
+      dialog.accept();
+    });
 
     const cron = [
       '0 3,8,12,23,37,41,45,51,55,59 5-23,0,1 * * *',
@@ -51,10 +47,12 @@ const main = async () => {
       '0 2,5,11,14,34,39,42,47,54,11 5-23,0,1 * * *',
     ];
     return new CronJob(cron[idx], async () => {
-    // return new CronJob('*/30 * * * * *', async () => {
+      // return new CronJob('*/30 * * * * *', async () => {
+      const point = await page.$eval('span.lg_pnt_n pnt_money', e => e.innerText);
+      console.log(`현재 포인트: ${point}`);
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      console.log('5퍼센트 확류로 그냥 안씀');
-      if (randomInt(0, 100) < 95) {
+      console.log('30퍼센트 확률로 그냥 안씀');
+      if (randomInt(0, 100) < 70) {
         await page.waitFor(randomInt(100, 3000));
         const boardNames = [...shuffle(Object.keys(boardUrl))];
         console.log('작성 예정 게시판', boardNames);
@@ -119,11 +117,13 @@ const main = async () => {
     await page.goto(boardWriteUrl[boardName], {timeout: 100000});
     const alreadyExistTitle = await page.$eval('input[id="wr_subject"]', e => e.value);
     if (alreadyExistTitle) {
-	    console.log('글쓰기 에러 발생');
+      console.log('글쓰기 에러 발생');
       await page.focus('input[id="wr_subject"]');
       await page.$eval('input[id="wr_subject"]', el => el.setSelectionRange(0, el.value.length));
       await page.keyboard.press('Backspace');
       await page.type('input[id="wr_subject"]', ' ');
+
+      await page.waitForSelector('div[class="cheditor-tab-code-off"]');
 
       const element = await page.$('div[class="cheditor-tab-code-off"]');
       if (element == null) {
