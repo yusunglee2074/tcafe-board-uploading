@@ -49,9 +49,10 @@ const main = async () => {
     return new CronJob(cron[idx], async () => {
       // return new CronJob('*/30 * * * * *', async () => {
       const point = await page.$eval('span.lg_pnt_n.pnt_money', e => e.innerText);
-      console.log(`현재 포인트: ${point}`);
+      const nickname = await page.$eval('div#o_lg div strong', e => e.innerText);
+      console.log(`닉네임: ${nickname} 현재 포인트: ${point}`);
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      if (randomInt(0, 100) < 65) {
+      if (randomInt(0, 100) < 60) {
         await page.waitFor(randomInt(100, 3000));
         const boardNames = [...shuffle(Object.keys(boardUrl))];
         console.log('작성 예정 게시판', boardNames);
@@ -59,7 +60,7 @@ const main = async () => {
         for (const boardName of boardNames) {
           console.log(boardName + ' 게시판에 글 쓰러간다');
           if (boardName === 'gongpo' || boardName === 'heal') {
-            if (randomInt(0, 100) < 65) {
+            if (randomInt(0, 100) < 70) {
               continue;
             }
           }
@@ -73,7 +74,7 @@ const main = async () => {
           }
         }
       } else {
-        console.log('35퍼센트 확률로 그냥 안씀');
+        console.log('40퍼센트 확률로 그냥 안씀');
       }
     }, null, true, 'Asia/Tokyo');
   };
