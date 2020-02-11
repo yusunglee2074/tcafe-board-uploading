@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const CronJob = require('cron').CronJob;
+const axios = require('axios');
 
 const ids = {
   lys20742: 'vLa4ivKFLVnWFKz',
@@ -9,7 +10,7 @@ const ids = {
 };
 const boardUrl = {
   // cook: 'http://tcafe2a.com/bbs/board.php?bo_table=c_food&page=',
-  gongpo: 'http://tcafe2a.com/bbs/board.php?bo_table=c_gongpo&page=',
+  // gongpo: 'http://tcafe2a.com/bbs/board.php?bo_table=c_gongpo&page=',
   humor: 'http://tcafe2a.com/bbs/board.php?bo_table=c_humor&page=',
   jjal: 'http://tcafe2a.com/bbs/board.php?bo_table=c_jjalbang&page=',
   enter: 'http://tcafe2a.com/bbs/board.php?bo_table=c_enter&page=',
@@ -18,7 +19,7 @@ const boardUrl = {
 };
 const boardWriteUrl = {
   // cook: 'http://tcafe2a.com/bbs/write.php?bo_table=c_food',
-  gongpo: 'http://tcafe2a.com/bbs/write.php?bo_table=c_gongpo',
+  // gongpo: 'http://tcafe2a.com/bbs/write.php?bo_table=c_gongpo',
   humor: 'http://tcafe2a.com/bbs/write.php?bo_table=c_humor',
   jjal: 'http://tcafe2a.com/bbs/write.php?bo_table=c_jjalbang',
   enter: 'http://tcafe2a.com/bbs/write.php?bo_table=c_enter',
@@ -27,6 +28,27 @@ const boardWriteUrl = {
 };
 
 const main = async () => {
+
+  const checkLink = async (content) => {
+    let isValid = true;
+    const firstImageUrlIdx = content.indexOf('http://i2.linkoooo');
+    const firstImageUrlEndIdx = content.slice(firstImageUrlIdx).indexOf('"');
+    const tempStr = content.slice(firstImageUrlIdx, firstImageUrlEndIdx + firstImageUrlIdx);
+    if (tempStr) {
+      try {
+        const res = await axios.get(tempStr);
+        if (res.status !== 200) {
+          isValid = false;
+        }
+      } catch(e) {
+        isValid = false;
+      }
+    }
+
+    
+    return isValid;
+    
+  }
 
   const makePageAndMakeCronJobWithLogin = async (id, idx) => {
     const browser = await puppeteer.launch();
@@ -40,11 +62,22 @@ const main = async () => {
       dialog.accept();
     });
 
+    function makeCron() {
+      const timeArr = [];
+      while (timeArr.length !== 7) {
+        const ranInt = randomInt(1, 59);
+        if (timeArr.indexOf(ranInt) === -1) {
+          timeArr.push(ranInt)
+        }
+      }
+      return timeArr.sort((a,b) => a - b).join(',');
+    }
+
     const cron = [
-      '0 3,8,12,23,37,41,45,51,55,59 5-23,0,1 * * *',
-      '0 1,7,14,29,32,38,42,50,53,54 5-23,0,1 * * *',
-      '0 0,6,11,18,28,36,41,48,52,57 5-23,0,1 * * *',
-      '0 2,5,11,14,34,39,42,47,54,11 5-23,0,1 * * *',
+      '10 '+ makeCron() + ' 6-23,1,2 * * *',
+      '20 '+ makeCron() + ' 6-23,0,1,2 * * *',
+      '20 '+ makeCron() + ' 6-23,0,1,2 * * *',
+      '20 '+ makeCron() + ' 6-23,0,1,2 * * *',
     ];
     return new CronJob(cron[idx], async () => {
       // return new CronJob('*/30 * * * * *', async () => {
@@ -52,7 +85,7 @@ const main = async () => {
       const nickname = await page.$eval('div#o_lg div strong', e => e.innerText);
       console.log(`닉네임: ${nickname} 현재 포인트: ${point}`);
       console.log('글쓰기 시작, 현재시각 : ' + new Date);
-      if (randomInt(0, 100) < 60) {
+      if (randomInt(0, 100) < 90) {
         await page.waitFor(randomInt(100, 3000));
         const boardNames = [...shuffle(Object.keys(boardUrl))];
         console.log('작성 예정 게시판', boardNames);
@@ -65,7 +98,9 @@ const main = async () => {
             }
           }
           const {title, content} = await getTitleAndContent(page, boardName);
-          if (content.indexOf('iframe') === -1) {
+          let isLinkValid = false;
+           isLinkValid = await checkLink(content);
+          if (content.indexOf('iframe') === -1 && isLinkValid && title.length > 1) {
             await writeBoard({
               page,
               boardName,
@@ -73,8 +108,6 @@ const main = async () => {
             });
           }
         }
-      } else {
-        console.log('40퍼센트 확률로 그냥 안씀');
       }
     }, null, true, 'Asia/Tokyo');
   };
@@ -112,6 +145,16 @@ const main = async () => {
     await page.goto(url + '&wr_id=' + boardId, {timeout: 100000});
 
     if (title[0] === '[') title = title.slice(5);
+    let numIdx = title.length - 1;
+    for (let i = numIdx; i > 0; i--) {
+      const char = title[i];
+      if (Number(char) >= 0) {
+        numIdx = i;
+      } else {
+        break;
+      }
+    }
+    title = title.slice(0, numIdx);
     const content = await page.$eval(`div#view_${boardId}`, e => {
       let html = e.innerHTML.slice(39);
       return html.slice(0, html.length - 31);
