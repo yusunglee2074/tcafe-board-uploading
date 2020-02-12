@@ -100,7 +100,7 @@ const main = async () => {
           const {title, content} = await getTitleAndContent(page, boardName);
           let isLinkValid = false;
            isLinkValid = await checkLink(content);
-          if (content.indexOf('iframe') === -1 && isLinkValid && title.length > 1) {
+          if (title.indexOf('신고') > -1 || title.indexOf('위반') > -1 || title.indexOf('규정') > -1 ||content.indexOf('iframe') === -1 && isLinkValid && title.length > 1) {
             await writeBoard({
               page,
               boardName,
@@ -154,7 +154,7 @@ const main = async () => {
         break;
       }
     }
-    title = title.slice(0, numIdx);
+    title = title.slice(0, numIdx + 1);
     const content = await page.$eval(`div#view_${boardId}`, e => {
       let html = e.innerHTML.slice(39);
       return html.slice(0, html.length - 31);
